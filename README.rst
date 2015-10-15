@@ -31,7 +31,7 @@ control where the favicon gets written to disk,
     mkdir /tmp/favicon-downloads
 
     favicon_saved_at = download_favicon('https://www.python.org/', \
-        file_prefix='python.org-', target_dir='/tmp/favicon-downloads')
+        target_dir='/tmp/favicon-downloads')
 
 Get the location
 ~~~~~~~~~~~~~~~~

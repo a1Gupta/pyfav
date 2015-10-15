@@ -13,14 +13,13 @@ To download a favicon for it's as simple as,
 ============
 from favicon import download_favicon
 
-download_favicon('https://www.python.org/')
+favicon_saved_at = download_favicon('https://www.python.org/')
+
 ============
-
 If you want to be specific in where that favicon gets written to disk,
-
 ============
 favicon_saved_at = download_favicon('https://www.python.org/', \
-    file_prefix='python.org-', target_dir='/tmp/favicon-downloads')
+    target_dir='/tmp/favicon-downloads')
 ============
 
 
@@ -32,12 +31,13 @@ favicon_url = get_favicon_url('https://www.python.org/')
 """
 
 
-
 import urllib, os.path, string
 from urlparse import urlparse
 import requests
 from bs4 import BeautifulSoup
 
+# get domain name
+import tldextract
 
 # Some hosts don't like the requests default UA. Use this one instead.
 headers = {
@@ -46,14 +46,13 @@ headers = {
         Safari/537.36'
 }
 
-def download_favicon(url, file_prefix='', target_dir='/tmp'):
+
+def download_favicon(url, target_dir='/tmp'):
     """
     Given a URL download the save it to disk
     
     Keyword arguments:
     url -- A string. This is the location of the favicon
-    file_prefix - A string. If you want the downloaded favicon filename to
-        be start with some characters you provide, this is a good way to do it.
     target_dir -- The location where the favicon will be saved.
     
     Returns:
@@ -62,35 +61,41 @@ def download_favicon(url, file_prefix='', target_dir='/tmp'):
     
     parsed_site_uri = urlparse(url)
 
+
+
     # Help the user out if they didn't give us a protocol
     if not parsed_site_uri.scheme:
         url = 'http://' + url
         parsed_site_uri = urlparse(url)
 
     if not parsed_site_uri.scheme or not parsed_site_uri.netloc:
-        raise Exception("Unable to parse URL, %s" % url)
+        # do not raise exception
+        return None
+        #raise Exception("Unable to parse URL, %s" % url)
+
+
 
     favicon_url = get_favicon_url(url)
 
     if not favicon_url:
-        raise Exception("Unable to find favicon for, %s" % url)
+        # do not raise exception
+        return None
+        #raise Exception("Unable to find favicon for, %s" % url)
+    
+    # favicon name
+    ext = tldextract.extract(url)
+    if ext.subdomain=='www' or ext.subdomain == '':
+        domain = '.'.join(ext[1:3])
+    else:
+        domain = '.'.join(ext[:3])
+
+    file_name = 'icon_' + domain + '.ico'
 
     # We finally have a URL for our favicon. Get it. 
     response = requests.get(favicon_url, headers=headers)
-    if response.status_code == requests.codes.ok:
-        # we want to get the the filename from the url without any params
-        parsed_uri = urlparse(favicon_url)
-        favicon_filepath = parsed_uri.path
-        favicon_path, favicon_filename  = os.path.split(favicon_filepath)
 
-    valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+    sanitized_filename = os.path.join(target_dir, file_name)
     
-    sanitized_filename = "".join([x if valid_chars \
-        else "" for x in favicon_filename])
-        
-    sanitized_filename = os.path.join(target_dir, file_prefix + 
-        sanitized_filename)
-        
     with open(sanitized_filename, 'wb') as f:
             for chunk in response.iter_content(chunk_size=1024): 
                 if chunk: # filter out keep-alive new chunks
@@ -154,7 +159,7 @@ def get_favicon_url(url):
     """
     Returns a favicon URL for the URL passed in. We look in the markup returned
     from the URL first and if we don't find a favicon there, we look for the 
-    default location, e.g., http://example.com/favicon.ico . We retrurn None if
+    default location, e.g., http://example.com/favicon.ico . We return None if
     unable to find the file.
     
     Keyword arguments:
@@ -170,7 +175,8 @@ def get_favicon_url(url):
     try:
         response = requests.get(url, headers=headers)
     except:
-        raise Exception("Unable to find URL. Is it valid? %s" % url)
+        return None
+        #raise Exception("Unable to find URL. Is it valid? %s" % url)
     
     if response.status_code == requests.codes.ok:
         favicon_url = parse_markup_for_favicon(response.content, url)

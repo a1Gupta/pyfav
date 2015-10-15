@@ -3,6 +3,7 @@ from setuptools import setup, find_packages
 install_requires = [
     "beautifulsoup4>=4.3.2",
     "requests>=2.1.0",
+    "tldextract>=1.7.1",
 ]
 
 classifiers = """
